@@ -10,7 +10,9 @@ import java.io.FileWriter;      // 파일 쓰기
 import java.io.BufferedWriter;
 import java.io.IOException;
 
-import java.util.Stack;
+// ######################################################
+// ###########      파일 경로 설정은 130번 줄에        ########
+// ######################################################
 
 public class Main
 {
@@ -18,29 +20,25 @@ public class Main
             "int main() \n{\n" +
             "\t int val[3] = {0, 0, 0}; \n";
 
-    static String endOutput = "return 0\n" +
+    static String endOutput = "return 0;\n" +
             "}";
 
     public static String removeUmm(String str)
     {
         int ummIndex = str.indexOf("엄");
-
         str = str.substring(ummIndex + 1);
-
         return str;
     }
     public static String findUmm(String str)
     {
         String allocaValue;
-        int cnt = 1;
+        int cnt = 0;
         int ummIndex = str.indexOf("엄");
 
         for(int i = ummIndex - 1; i >= 0; i --)
         {
-            if(str.charAt(i) == '어')
-                cnt ++;
-            else
-                break;
+            if(str.charAt(i) == '어') cnt ++;
+            else                     break;
         }
 
         allocaValue = "val[" + cnt + "] = ";
@@ -48,102 +46,76 @@ public class Main
         return allocaValue;
     }
 
-    public static int calcComa_forSik(String str)
+    public static String calcComa(String str)   // 어 . , 계산 값 반환
     {
-        Stack<String> stack = new Stack<>();
-        int value = 0;
-
-        if(str.length() > 0 && str.charAt(0) == '어')
-        {
-            return str.length();
-        }
-
-        int tempnum = 0;
-        for(int i = 0; i < str.length(); i ++)
-        {
-
-
-        }
-
-        return value;
-    }
-    public static String calcComa(String str)
-    {
-        Stack<String> stack = new Stack<>();
+        char lastChar = 'n';
         String value = "";
 
-        for(int i = 0; i < str.length();)
+        for(int i = 0; i < str.length();    )
         {
+            if(i > 0 && str.charAt(i - 1) != str.charAt(i)) // 새로운 연산이 필요한 경우
+            {
+                if(str.charAt(i) == ' ')        // * 추가 후 i ++로 ' ' 넘어감
+                {
+                    value += " * ";
+                    i ++;
+                }
+                else
+                    value += " + ";
+            }
+
             if(str.charAt(i) == '어')
             {
-                if(i > 0)
-                    value += " + ";
-
-                int tempCnt = 0;
-                while(i < str.length() && str.charAt(i) == '어')
+                int tempCnt = -1;       // 변수 index 이므로 0부터 시작하기 위해 -1로 초기화
+                while(true)
                 {
+                    if(str.charAt(i) == '어') tempCnt ++;
+                    else                      break;
+
                     i ++;
-                    tempCnt ++;
+                    if(i >= str.length())   break;
                 }
 
                 value += "val[" + tempCnt + "]";
             }
 
-            else if(str.charAt(i) == '.' || str.charAt(i) == ',')
+            else if(str.charAt(i) == ',' || str.charAt(i) == '.')
             {
-                if(i > 0)
-                    value += " + ";
+                int tempCnt = 0;                // 직접 대입이므로 0으로 초기화
 
-                int tempcnt = 0;
-                char tempchar = str.charAt(i);
-
-                while((tempchar == '.' || tempchar == ',') && i < str.length())
+                while(true)
                 {
-                    tempchar = str.charAt(i);
-
-                    if(tempchar == '.')
-                        tempcnt ++;
-                    else if(tempchar == ',')
-                        tempcnt --;
-                    else
-                    {
-                        tempcnt = tempcnt;
-                    }
+                    if(str.charAt(i) == '.')      tempCnt ++;
+                    else if(str.charAt(i) == ',') tempCnt --;
 
                     i ++;
 
+                    if(i >= str.length())    break;
+                    if(str.charAt(i) == ' ') break;
                 }
 
-                value +=  "(" + tempcnt + ")";
-            }
-
-            else    // 공백일 경우 일단 넘어감
-            {
-                value += " * ";
-                i++;
+                value +=  "(" + tempCnt + ")";
             }
         }
-
         return value;
     }
 
-
-    public static String sikInstruction(char sikType, int indexOrAskiNum) // 출력은 변수 또는 아스키코드 두가지로 나눠야함
+    public static String sikInstruction(char sikType, String indexOrAskiNum) // 출력은 변수 또는 아스키코드 두가지로 나눠야함
     {
-
         String printfInstruction = "\tprintf(\"%";     // printf("%
-        if (sikType == '!') {
-            printfInstruction += "d\", val[" + indexOrAskiNum + "]); \n";      // printf("%d", val[1]);
-        }
+        if (sikType == '!')
+            printfInstruction += "d\", " + indexOrAskiNum + "); \n";      // printf("%d", val[1]);
 
-        else if (sikType == 'ㅋ')    // 아스키 코드를 출력해야 하는 경우
-        {
-            printfInstruction += "c”, " + indexOrAskiNum + "); \n";            // printf("%c", 1);
-        }
+        else if (sikType == 'ᄏ')    // 아스키 코드를 출력해야 하는 경우
+            printfInstruction += "c\", " + indexOrAskiNum + "); \n";            // printf("%c", 1);
 
         else if(sikType == '?')   // ? (입력) 일 경우
         {
-            printfInstruction = "\tscanf(\"%d\", val[" + indexOrAskiNum + "]); \n";   // scanf("%d", val[1]);
+            if(indexOrAskiNum.equals(""))            indexOrAskiNum = "val[0]";
+            else if(indexOrAskiNum.equals("val[0]")) indexOrAskiNum = "val[1]";
+            else                                     indexOrAskiNum = "val[2]";
+
+            printfInstruction = "\tscanf(\"%d\", &" + indexOrAskiNum + "); \n";   // scanf("%d", val[1]);
         }
 
         return printfInstruction;
@@ -154,8 +126,12 @@ public class Main
         // Press Opt+Enter with your caret at the highlighted text to see how
         // IntelliJ IDEA suggests fixing it.
 
+        // ######################################################
+        // ###########      파일 경로 설정                  ########
         File file = new File("test/test.umm");
         File output = new File("outputCFile/test.c");
+        // ######################################################
+        // ######################################################
 
         output.createNewFile();
 
@@ -171,32 +147,27 @@ public class Main
 
                     String result = ""; // write를 위한 최종 결과물
 
-                    if(line.equals("어떻게"))
-                    {
-                        result = startOutput;
-                    }
+                    // 시작 include 선언
+                    if(line.equals("어떻게"))                  result = startOutput;
 
-                    else if(line.equals("이 사람이름이냐ㅋㅋ"))
-                    {
-                        result = endOutput;
-                    }
+                    // 종료 return
+                    else if(line.equals("이 사람이름이냐ᄏᄏ"))   result = endOutput;
 
                     else
                     {
-                        char sikType = 'n';
-                        int valueIndex = -1;
-                        String value = "";
+                        char sikType = 'n';     // '식' 이 존재할 경우 ! , ㅋ 의 타입 저장
+                        int valueIndex = -1;    // 변수의 index
+                        String value = "";      //
 
                         String outputLine = "";
 
                         outputLine = line;
 
-                        if(outputLine.contains("식") == true)
+                        if(outputLine.contains("식") == true)    // '식' 등장시
                         {
-                            sikType = outputLine.charAt(line.length() - 1);
-                            int sinIndex = outputLine.indexOf("식");
+                            sikType = outputLine.charAt(line.length() - 1); // ! , ㅋ 저장
+                            int sinIndex = outputLine.indexOf("식");        // '식' 의 위치
                             outputLine = outputLine.substring(sinIndex + 1, outputLine.length() - 1);   // '삭' 과 끝문자 제외한 나머지 문자열 저장
-
                             // 남은 outputLine 은 어 또는 ., 곱셈의 반복
                         }
 
@@ -208,6 +179,7 @@ public class Main
                         }
 
                         // 어 또는 , . 공백 이 나오는 경우 값 게산
+
                         value = calcComa(outputLine);
 
                         if(result.length() > 0 && value == "")
@@ -215,99 +187,18 @@ public class Main
 
                         result += value;
 
-
-                        if(sikType != 'n')  // '식'이 존재할 경우
-                        {
-                            int sikValue = calcComa_forSik(outputLine);
-                            result = sikInstruction(sikType, sikValue);
-                        }
-
+                        // '식'이 존재할 경우
+                        if(sikType != 'n')  result = sikInstruction(sikType, value);
                     }
-                    writer.write("//" + line + "\n");
-                    writer.write(result + "; \n");
+
+                    writer.write("\t"+ result + "; \n");
                 }
             }
         } catch (IOException e) {
             System.out.printf("파일 열리지 않음\n");
         }
 
-
         writer.close();
 
     }
 }
-
-/*
-
-    0. 파일 생성 및 기본 include 세팅 필요
-
-        #include <stdio.h>
-        int main() {            까지
-
-        "어떻게" 를 기준으로 시작
-
-       자료형은 정수만 -> default = 0
-        식의 기본 형식은
-        scanner Line 사용
-
-        - 값이 처음 나온 경우 int 로 선언해야함
-            -> static으로 그냥 3개 선언
-            (배열로 만들어서 엄, 어엄, 어어엄 에 따라 1, 2, 3 배열에 접근하도록
-
-        - 식 (value) ㅋ
-
-        - 식 (value) !
-
-        - 식?
-
-            1. value를 읽는 함수
-
-            2.
-
-
-
-
-    1. . , " "(공백)을 읽는 함수
-    2. 어어..엄 -> 엄이 나올 때 까지 어어 개수를 읽는 함수 (
-        엄이 없다면 load, 아니라면 store
-            (어*) 엄 (어* 또는 .*)
-    3. 식?(입력) 식!(출) 판별     (value) [식? 또는 식!] (value) ㅋ
-    4.  식의 끝은 세미콜론 대신 \n (공백은 곱셈으로 들어감)
-
-
-
-
-
-     "이 사람이름이냐ᄏᄏ"
-       나올 경우 return 0;
-
-
-
-       선언 -> 전역으로 선언해두기 때문에 필요없음
-       출력
-       입력
-
-       ++, -- 등 사칙연산
-
-
-        '어' 가 나올 때 뒤에 '엄'이 있다면 선언, 없다면 '어' 개수의 index를 갖는 변수
-
-        - '어'가 나오는 경우, 어 뒤에
-                    엄               -> n번째 변수에 뒤의 값 저장  = 연산
-                    , .             -> n번쨰 변수에 값 더하거나 빼기 -> += 연산
-                    아무것도 없는 경우  -> 곱샘
-                    총 3가지 경우
-
-        - '식' 이 나오는 경우 가장 마지막에
-                    ㅋ           %c 출력
-                    !           %d 출력
-                    ?           입력
-                    총 3가지 경우
-
-
-    1. 처음에 전체를 탐색하며 '식' 이 있는지 확인
-        1-1. '식'의 끝에 무엇이 오는지 확인
-
-    2. '식'과 끝값을 제외한 나머지의 연산 진행
-
- */
