@@ -3,11 +3,11 @@
 import java.util.Objects;
 import java.util.Stack;
 import java.io.IOException;
+
+import java.util.regex.Pattern;
+
 public class tinyPythonPrintListener extends tinyPythonBaseListener {
 
-/*
-System.out.print("");
- */
 
 //    https://github.com/CNUCOM/compilers_CNU_2023/issues/12
 
@@ -84,33 +84,49 @@ System.out.print("");
             } // 중복 안되는 키워드 띄어쓰기 처리 끝 ################
 
 
-
-            int index = sb.indexOf("if");
-            if(index != -1)
+            if(str.matches("if(.*)"))
             {
                 stack_if.push("if");
             }
 
-            index = sb.indexOf("def");
-            if(index != -1)
+            if(str.matches("def(.*)"))
             {
                 stack_if.push("def");
             }
 
-            if(sb.indexOf("else:") != -1 && !stack_else.empty() && stack_else.peek().equals("else:"))
+            if(str.matches("while(.*)"))
+            {
+                stack_if.push("while");
+            }
+
+
+
+            if ((str.matches("(.*)else:(.*)") && !stack_else.empty() && stack_else.peek().equals("else:"))
+                    || (str.matches("(.*)elif(.*)") && !stack_else.empty() && stack_else.peek().equals("else:"))
+                    || (sb.isEmpty() && !stack_if.empty() && !stack_else.empty() && stack_else.peek().equals("if"))
+                    || (sb.isEmpty() && !stack_if.empty() && !stack_else.empty() && stack_else.peek().equals("elif"))
+
+            )
             {
                 stack_if.pop();
                 stack_else.pop();
             }
 
-            if(sb.isEmpty() && !stack_if.empty() && stack_if.peek().equals("if"))
+            if(sb.isEmpty() && !stack_if.empty() && stack_if.peek().equals("if")
+
+            )
             {
-                stack_if.pop();
+                while(!stack_if.empty() && stack_if.peek().equals("if"))
+                {
+                    stack_if.pop();
+                }
             }
-            else if(sb.isEmpty() && !stack_if.empty() && !stack_else.empty() && stack_else.peek().equals("if"))
+            else if(sb.isEmpty() && !stack_if.empty() && stack_if.peek().equals("while"))
             {
-                stack_if.pop();
-                stack_else.pop();
+                while(!stack_if.empty() && stack_if.peek().equals("while"))
+                {
+                    stack_if.pop();
+                }
             }
 
 
@@ -120,13 +136,19 @@ System.out.print("");
             {
                 if(sb.indexOf("else:") != -1)
                 {
-//                    privousKeyWord = "else:";
                     stack_else.push("else:");
                 }
-                else if(sb.indexOf("if") != -1)
+                else if(str.matches("if(.*)"))
                 {
-//                    privousKeyWord = "if";
                     stack_else.push("if");
+                }
+                else if(str.matches("elif(.*)"))
+                {
+                    stack_else.push("elif");
+                }
+                else if(str.matches("while(.*)"))
+                {
+                    stack_else.push("while");
                 }
 
                 tempnum --;
@@ -137,13 +159,22 @@ System.out.print("");
                 System.out.print("\t");
             }
 
-            if(sb.indexOf("return") != -1)
+            if(!stack_if.empty() && sb.indexOf("return") != -1)
             {
-                stack_if.pop();
+                if(strArr[strArrIndex + 1].isEmpty() && !stack_if.empty() && !stack_else.empty() && stack_else.peek().equals("else:") && stack_if.peek().equals("if"))
+                {
+                    stack_if.pop();
+                }
+
+                if(stack_if.peek().equals("def") && stack_if.size() == 1)
+                {
+                    stack_if.pop();
+                }
+                else
+                {
+
+                }
             }
-
-
-
 
             System.out.println(sb);
 
@@ -152,7 +183,7 @@ System.out.print("");
 
 
 
-        System.out.println("exit Program #### ");
+        System.out.println("################### exit Program ###################");
     }
 
 }
