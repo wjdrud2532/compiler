@@ -1,5 +1,6 @@
 
 
+import java.util.Objects;
 import java.util.Stack;
 import java.io.IOException;
 public class tinyPythonPrintListener extends tinyPythonBaseListener {
@@ -8,22 +9,25 @@ public class tinyPythonPrintListener extends tinyPythonBaseListener {
 System.out.print("");
  */
 
-    https://github.com/CNUCOM/compilers_CNU_2023/issues/12
+//    https://github.com/CNUCOM/compilers_CNU_2023/issues/12
 
     @Override
     public void exitProgram( tinyPythonParser.ProgramContext ctx )
     {
         // == 는 = 발견 시 뒤에도 =가 있는지 확인해야함                             // 한 line에 대해
-        char[] needOneSpaceChar = {'=', '+', '-', ','};                    // 중복 가능 , '<', '>'
-        String[] needOneSpaceStr = {"return", "print", "def", "if", "else:"};       // 중복 불가능
+        char[] needOneSpaceChar = {'=', '+', '-', ',', '<', '>', '!'};                    // 중복 가능 , '<', '>'
+        String[] needOneSpaceStr = {"return", "print", "def", "elif", "if", "else:", "while"};       // 중복 불가능
 
-        String[] needTabPlusStr = {"def", "if", "else:" };
-        String[] needTabMinusStr = {"return"};
+        String[] needTabPlusStr = {"def", "elif", "else:", "if"};    //, "elif" 는 indexOf의 if로 탐지됨
+        String[] needTabMinusStr = {"elif", "else:", "if"};
 
         String privousKeyWord = "";
 
-        Stack<String> stack_t = new Stack<>();
+        Stack<String> stack_if = new Stack<>();
+        Stack<String> stack_else = new Stack<>();
         Stack<String> stack_bracket = new Stack<>();
+
+        StringBuffer sb;
 
         int tabCnt = 0;
 
@@ -32,18 +36,12 @@ System.out.print("");
         for(int strArrIndex = 0; strArrIndex < strArr.length; strArrIndex ++)
         {
             String str = strArr[strArrIndex];
-            StringBuffer sb = new StringBuffer(str);
+            sb = new StringBuffer(str);
 
 //            System.out.println(sb);
 
-            // def, if, else 발견시 needTabCnt ++, return, if문 이후 line 출력시 needTabCnt --
-            for(int i = 0; i < tabCnt; i ++)
-            {
-                System.out.print("\t");
-            }
-
-
-            for(int i = 0; i < sb.length(); i ++)                   // 기호 처리
+            // 기호 처리 ##########################
+            for(int i = 0; i < sb.length(); i ++)
             {
                 for(int j = 0; j < needOneSpaceChar.length; j ++)
                 {
@@ -56,7 +54,7 @@ System.out.print("");
                         }
                         else
                         {
-                            if(sb.charAt(i + 1) == needOneSpaceChar[j]) // == 일 경우
+                            if(i + 1 < sb.length() && sb.charAt(i + 1) == '=') // == 일 경우
                             {
                                 sb.insert(i, " ");
                                 sb.insert(i + 3, " ");
@@ -71,43 +69,84 @@ System.out.print("");
                         }
                     }
                 }
-            }
+            } // 기호 처리 끝 ##########################
 
+            // 중복 안되는 키워드 띄어쓰기 처리 ################
             for(int i = 0; i < needOneSpaceStr.length; i ++)
             {
                 int startIndex = sb.indexOf(needOneSpaceStr[i]);
                 if(startIndex != -1)
                 {
-                    for(int j = 0; j < needTabPlusStr.length; j ++)
-                    {
-                        if(needOneSpaceStr[i].equals(needTabPlusStr[j]))
-                        {
-                            tabCnt ++;
-                        }
-                    }
-
-                    for(int j = 0; j < needTabMinusStr.length; j ++)
-                    {
-                        if(needOneSpaceStr[i].equals(needTabMinusStr[j]))
-                        {
-                            tabCnt --;
-                        }
-                    }
-
-//                    if(privousKeyWord.equals("if") || privousKeyWord.equals("else:"))
-                    if(privousKeyWord.equals("else:"))
-                        tabCnt --;
-
-                    privousKeyWord = needOneSpaceStr[i];
-
                     sb.insert(startIndex + needOneSpaceStr[i].length(), " ");
                     i += (startIndex + needOneSpaceStr[i].length());
                     break;
                 }
+            } // 중복 안되는 키워드 띄어쓰기 처리 끝 ################
+
+
+
+            int index = sb.indexOf("if");
+            if(index != -1)
+            {
+                stack_if.push("if");
             }
 
+            index = sb.indexOf("def");
+            if(index != -1)
+            {
+                stack_if.push("def");
+            }
+
+            if(sb.indexOf("else:") != -1 && !stack_else.empty() && stack_else.peek().equals("else:"))
+            {
+                stack_if.pop();
+                stack_else.pop();
+            }
+
+            if(sb.isEmpty() && !stack_if.empty() && stack_if.peek().equals("if"))
+            {
+                stack_if.pop();
+            }
+            else if(sb.isEmpty() && !stack_if.empty() && !stack_else.empty() && stack_else.peek().equals("if"))
+            {
+                stack_if.pop();
+                stack_else.pop();
+            }
+
+
+            int tempnum = stack_if.size();
+
+            if(sb.indexOf(":") != -1)
+            {
+                if(sb.indexOf("else:") != -1)
+                {
+//                    privousKeyWord = "else:";
+                    stack_else.push("else:");
+                }
+                else if(sb.indexOf("if") != -1)
+                {
+//                    privousKeyWord = "if";
+                    stack_else.push("if");
+                }
+
+                tempnum --;
+            }
+
+            for(int i = 0; i < tempnum; i ++)
+            {
+                System.out.print("\t");
+            }
+
+            if(sb.indexOf("return") != -1)
+            {
+                stack_if.pop();
+            }
+
+
+
+
             System.out.println(sb);
-//            System.out.println();
+
         }  // end for(int currentStrIndex = 0; currentStrIndex < str.length(); currentStrIndex ++)
 
 
