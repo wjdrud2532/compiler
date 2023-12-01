@@ -15,6 +15,10 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.Stack;
 
+import java.util.LinkedList; //import
+import java.util.Queue; //import
+
+
 /**
  * This class provides an empty implementation of {@link tinyPythonListener},
  * which can be extended to create a listener which only needs to handle a subset
@@ -46,9 +50,9 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 			tnum2 = Integer.parseInt(num2);
 
 		if(op.equals("+"))
-			sum = tnum2 + tnum1;
+			sum = tnum1 + tnum2;
 		else
-			sum = tnum2 - tnum1;
+			sum = tnum1 - tnum2;
 
 		return Integer.toString(sum);
 	}
@@ -66,6 +70,8 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 	Stack<Integer> stackInt = new Stack<>();
 	Stack<String> stackForPrint = new Stack<>();
+
+	Queue<String> queueForPrint = new LinkedList<>();
 	boolean printStart = false;
 
 	Stack<String> stacktotal = new Stack<>();
@@ -89,6 +95,14 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	@Override public void enterProgram(tinyPythonParser.ProgramContext ctx) {
 		System.out.println( " Program 시작 : ");
 
+		// 파일 생성 및 open
+		try {
+			FileWriter fileWriter = new FileWriter(FILE_NAME);
+			printWriter = new PrintWriter(fileWriter);
+		} catch (IOException e) {
+			System.out.println("파일 open 실패. 오류 메세지:  " + e.getMessage());
+		}
+
 		printWriter.println(".class public Test\n" +
 				".super java/lang/Object\n" +
 				"; strandard initializer\n" +
@@ -98,18 +112,17 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 				"return\n" +
 				".end method");
 
+		printWriter.println(".method public static main([Ljava/lang/String;)V\n" +
+				".limit stack 32\n" +
+				".limit locals 32");
 
-		// 파일 생성 및 open
-		try {
-			FileWriter fileWriter = new FileWriter(FILE_NAME);
-			printWriter = new PrintWriter(fileWriter);
-		} catch (IOException e) {
-			System.out.println("파일 open 실패. 오류 메세지:  " + e.getMessage());
-		}
+
 	}
 	
 	@Override public void exitProgram(tinyPythonParser.ProgramContext ctx) {
 		System.out.println( " Program 끝 : ");
+		printWriter.println("return\n" +
+				".end method");
 		printWriter.close(); // 파일 닫기
 	}
 	
@@ -287,12 +300,14 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 		{
 			int printnum = 0;
 
-			if(stackForPrint.size() <= 4)	// +, - 연산이 하나 이하인 경우
+			queueForPrint.remove();	// print 제거
+
+			if(queueForPrint.size() <= 3)	// +, - 연산이 하나 이하인 경우
 			{
 
-				if(stackForPrint.size() == 2)		// 단일인 경우
+				if(queueForPrint.size() == 1)		// 단일인 경우
 				{
-					String tstr1 = stackForPrint.pop();
+					String tstr1 = queueForPrint.poll();
 
 					if(isInteger(tstr1) == true)	// 정수인 경우
 						printnum = 	Integer.parseInt(tstr1);
@@ -304,36 +319,50 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 				else	// 하나의 연산인 경우
 				{
 					String tstr1, tstr2, op;
-					tstr1 = stackForPrint.pop();
-					op = stackForPrint.pop();
-					tstr2 = stackForPrint.pop();
+					tstr1 = queueForPrint.poll();
+					op = queueForPrint.poll();
+					tstr2 = queueForPrint.poll();
 
 					printnum = Integer.parseInt(CalcTwoString(tstr1, tstr2, op));
 				}
 			}
-			else if(stackForPrint.size() == 5)	// 함수 호출인 경우
+			else if(queueForPrint.size() == 4)	// 함수 호출인 경우
 			{
 
 			}
 			else	// +, - 연산이 2개 이상인 경우
 			{
-				int tempnum = 0;
+				/*
+				처음에 하나 값을 빼고
+				이후에 op와 값을 빼서 계산.
+				그것을 반복
+				 */
 
-				while(stackForPrint.size() > 1)
+				String tstr1 = queueForPrint.poll();
+				if (isInteger(tstr1) == true)
 				{
-					String tempstr = stackForPrint.pop();
-					if(tempstr.equals("print"))
-						break;
-
-
-
+					// 숫자일 경우 아무것도 안함
+					printnum = Integer.parseInt(tstr1);
 				}
+				else
+				{
+					// 변수일 경우 저장된 값을 찾아 할당
+				}
+
+				do {
+					String op = queueForPrint.poll();
+					String tstr2 = queueForPrint.poll();
+
+					printnum = Integer.parseInt(CalcTwoString(Integer.toString(printnum), tstr2, op));
+
+				} while(queueForPrint.size() > 1);
+
 			}
 
 
 
 
-			stackForPrint.clear();
+			queueForPrint.clear();
 			printWriter.println(globalCnt++ + ": ldc \"" + printnum + "\"");
 			printStart = false;
 		}
@@ -429,7 +458,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 		if(printStart == true)
 		{
-			stackForPrint.push(node.toString());
+			queueForPrint.offer(node.toString());
 		}
 
 //		System.out.println(node.getParent() + "   ||||||   "  + node);
