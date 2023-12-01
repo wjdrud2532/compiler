@@ -8,9 +8,7 @@ import java.util.regex.Pattern;
 
 public class tinyPythonPrintListener extends tinyPythonBaseListener {
 
-
 //    https://github.com/CNUCOM/compilers_CNU_2023/issues/12
-
     @Override
     public void exitProgram( tinyPythonParser.ProgramContext ctx )
     {
@@ -179,8 +177,6 @@ public class tinyPythonPrintListener extends tinyPythonBaseListener {
             System.out.println(sb);
 
         }  // end for(int currentStrIndex = 0; currentStrIndex < str.length(); currentStrIndex ++)
-
-
 
 
         System.out.println("################### exit Program ###################");

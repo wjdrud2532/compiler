@@ -1,0 +1,118 @@
+
+def check20000000(a):
+	if a == 20:
+		a = a + 10
+		return (a + 10)
+	elif a == 30:
+		a = a + 20
+		return (a + 20)
+	elif a == 30:
+		a = a + 30
+		return (a + 30)
+	else:
+		a = a + 40
+		return (a - 20)
+
+def sum(a):
+	a = a + a + a
+	a = a + 5 + 10
+	return a + 20
+
+while a <= 5:
+	a = a + 1
+
+while a >= 5:
+	a = a + 1
+
+while a == 5:
+	a = a + 1
+
+while a != 5:
+	a = a + 1
+
+while a <= 5:
+	a = a + 1
+	print "11111"
+	while a >= 5:
+		a = a + 1
+		print "22222"
+		while a == 5:
+			a = a + 1
+			print "33333"
+			while a != 5:
+				a = a + 1
+				print "44444"
+
+print "Hello World"
+
+print "Hello World"
+
+print "Hello World"
+
+
+if a == 10:
+	a = a + 10
+	if a == 10:
+		a = a + 10
+	elif a == 20:
+		a = a + 20
+	else:
+		a = a + 30
+elif a == 20:
+	a = a + 25
+	if a == 10:
+		a = a + 10
+	elif a == 20:
+		if a == 10:
+			a = a + 10
+		elif a == 20:
+			a = a + 20
+		else:
+			a = a + 30
+			a = a + 20
+	else:
+		a = a + 30
+		a = a + 20
+else:
+	a = a + 30
+	if a == 10:
+		a = a + 10
+	elif a == 20:
+		a = a + 20
+	else:
+		a = a + 30
+
+if e == 5:
+	print "aaa"
+
+if f == 6:
+	print "bbb"
+
+
+if e == 5:
+	print "aaa"
+	if f == 6:
+		print "bbb"
+		if f == 7:
+			print "ccc"
+			if f == 8:
+				print "ddd"
+
+if e == 5:
+	print "aaa"
+	if e == a:
+		print "qqq"
+
+if f == 6:
+	print "bbb"
+	if f == 7:
+		print "ccc"
+		if f == 8:
+			print "ddd"
+
+print "Hello World"
+
+f = sum(5, 6)
+
+print "Hello World"
+print "Hello World"
