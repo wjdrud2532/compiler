@@ -7,8 +7,12 @@ public class test {
         int num1 = 5;
         int num2 = 6;
 
+        System.out.println(num1);
 
+        System.out.println(234243);
 
+        int num3 = num1 + num1 + num1;
+        int num4 = num1 - num2;
 
         if(num1 >= 6)
             System.out.println("true");

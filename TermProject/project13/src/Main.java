@@ -15,10 +15,5 @@ public class Main {
 
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(new MiniPrintListener(), tree);   // 출력
-
     }
-
-
 }
-
-

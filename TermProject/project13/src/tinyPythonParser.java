@@ -42,7 +42,7 @@ public class tinyPythonParser extends Parser {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'='", "'break'", "'continue'", "'if'", "':'", "'elif'", "'else'", 
+			null, "'='", "'break'", "'continue'", "'if'", "':'", "''", "'else'",
 			"'while'", "'def'", "','", "'return'", "'print'", "'<'", "'>'", "'=='", 
 			"'>='", "'<='", "'!='", "'+'", "'-'", null, null, null, null, null, null, 
 			null, "'('", "')'", "'['", "']'", "'{'", "'}'"

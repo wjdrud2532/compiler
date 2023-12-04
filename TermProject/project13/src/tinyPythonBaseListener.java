@@ -42,21 +42,37 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 		if(isInteger(num1) == false)	// num1에 대한 map value 값을 찾아야 하는 경우
 		{
 			tnum1 = Integer.parseInt(keyAndValue.get(num1));
+			printWriter.println("iload " + keyAndNum.get(num1));
 		}
 		else
+		{
 			tnum1 = Integer.parseInt(num1);
+			printWriter.println("sipush " + num1);
+		}
+
 
 		if(isInteger(num2) == false)	// num2에 대한 map value 값을 찾아야 하는 경우
 		{
 			tnum2 = Integer.parseInt(keyAndValue.get(num2));
+			printWriter.println("iload " + keyAndNum.get(num2));
 		}
 		else
+		{
 			tnum2 = Integer.parseInt(num2);
+			printWriter.println("sipush " + num2);
+		}
+
 
 		if(op.equals("+"))
+		{
 			sum = tnum1 + tnum2;
+			printWriter.println("iadd");
+		}
 		else
+		{
 			sum = tnum1 - tnum2;
+			printWriter.println("isub");
+		}
 
 		return Integer.toString(sum);
 	}
@@ -84,6 +100,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 	int ifCnt = 1;
 	int returnCnt = 10000;
+	int whileCnt = 20000;
 	Stack<Integer> stackForIf = new Stack<>();
 	Stack<Integer> stackForWhile = new Stack<>();
 	Stack<Integer> stackForReturn = new Stack<>();
@@ -92,7 +109,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	private static PrintWriter printWriter; // 전역 변수로 PrintWriter 선언
 
 	ParseTreeProperty<String> newTexts = new ParseTreeProperty<>();
-	int globalCnt = 1;	// line 수 체크를 위한 변수
+	int globalCnt = 20000;	// line 수 체크를 위한 변수
 	String globalStr = "";
 
 
@@ -165,10 +182,15 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	@Override public void enterSimple_stmt(tinyPythonParser.Simple_stmtContext ctx) {
 //		System.out.println( " simple_stmt_시작 : ");
 
+
 	}
 	
 	@Override public void exitSimple_stmt(tinyPythonParser.Simple_stmtContext ctx) {
-//		System.out.println( " simple_stmt_END : ");
+		System.out.println( " simple_stmt_END : ");
+
+//		if(!stackForIf.isEmpty())
+//			printWriter.print("0" + stackForIf.pop() + ": ");
+//			printWriter.print("0" + (stackForIf.peek()) + ": 222 ");
 	}
 	
 	@Override public void enterSmall_stmt(tinyPythonParser.Small_stmtContext ctx) {
@@ -193,62 +215,39 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 		key = queueForAlloca.poll();
 		queueForAlloca.poll();	// remove simbol '='
 
-		if(queueForAlloca.size() == 1)
-		{
-			String tstr1 = queueForAlloca.poll();
-
-			if(isInteger(tstr1) == true)
-			{
-				value = tstr1;
-			}
-			else	// 변수일 경우 변수 값 찾아 다시 value에 할당
-			{
-				value = keyAndValue.get(tstr1);
-			}
-		}
-
-		else
-		{
-			String tstr1 = queueForAlloca.poll();
-			if (isInteger(tstr1) == true)
-			{
-				// 숫자일 경우 아무것도 안함
-				value = tstr1;
-			}
-			else
-			{
-				// 변수일 경우 저장된 값을 찾아 할당
-				value = keyAndValue.get(tstr1);
-			}
-
-			do {
-				String op = queueForAlloca.poll();
-				String tstr2 = queueForAlloca.poll();
-
-				value = CalcTwoString(value, tstr2, op);
-
-			} while(queueForAlloca.size() > 1);
-		}
-
-
-		if(keyAndValue.containsKey(key) == false)	// 이전에 선언된 것이 없다면
-		{
-			keyAndValue.put(key, value);	// 새로 할당
-		}
-		else
-		{
-			keyAndValue.replace(key, value);	// 값 재할당
-		}
-
-		printWriter.println(globalCnt++ + ": ldc " + value);
-
 		if(keyAndNum.containsKey(key) == false)	// 이전에 store 되지 않았다면
 		{
 			keyAndNum.put(key, Integer.toString(pushNum));
 			pushNum ++;
 		}
 
-		printWriter.println(globalCnt++ + ": istore " + keyAndNum.get(key));
+		while(!queueForAlloca.isEmpty())
+		{
+			String tstr1 = queueForAlloca.poll();
+
+			if(isInteger(tstr1) == true)	// 숫자일 경우
+				printWriter.println("sipush " + tstr1);
+
+			else if(!tstr1.equals("+") && !tstr1.equals("-"))
+				printWriter.println("iload " + keyAndNum.get(tstr1));
+
+			else	// 연산 기호인 경우 다음 값 확인
+			{
+				String tstr2 = queueForAlloca.poll();
+
+				if(isInteger(tstr2) == true)	// 숫자일 경우
+					printWriter.println("sipush " + tstr2);
+				else
+					printWriter.println("iload " + keyAndNum.get(tstr2));
+
+				if(tstr1.equals("+"))
+					printWriter.println("iadd");
+				else
+					printWriter.println("isub");
+			}
+		}
+
+		printWriter.println( "istore " + keyAndNum.get(key));
 
 		allocaStart = false;
 	}
@@ -286,44 +285,44 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 
 	}
-	
+
 	@Override public void enterIf_stmt(tinyPythonParser.If_stmtContext ctx) {
 		System.out.println( " IF_START : ");
 
 		stackForReturn.push(returnCnt++);
 	}
-	
+
 	@Override public void exitIf_stmt(tinyPythonParser.If_stmtContext ctx) {
 		System.out.print( " IF_END : ");
+//
+//		if(!stackForIf.isEmpty())
+//			printWriter.print("0" + stackForIf.pop() + ": fff ");
 
+//		printWriter.println(stackForIf.pop() + ": goto " + globalCnt);
+		if(!stackForIf.isEmpty())
+			printWriter.println("0" + stackForIf.pop() + ": goto " + stackForReturn.peek());
 
-		while(!stackForReturn.empty())
-			printWriter.println(stackForReturn.pop() + ": return");
+		printWriter.println(stackForReturn.pop() + ": goto " + globalCnt);
+		printWriter.print("" + globalCnt + ": ");
+		globalCnt ++;
 
-//		while(!stackForIf.empty())
-//			printWriter.println(stackForIf.pop() + ": return");
-
-		if(stackForReturn.empty())
-			printWriter.println(globalCnt++ + ": return");
-
-
-		//		while(!stackForIf.empty())
-
-		printWriter.println(stackForIf.pop() + ": return");
-//		printWriter.println("aaaaaa");
-
-//		System.out.print(ctx.getText() + " " );
-//		System.out.println(ctx.depth());
-//		System.out.println(ctx.su);
-
+//		printWriter.println("if_end #####################");
 	}
 	
 	@Override public void enterWhile_stmt(tinyPythonParser.While_stmtContext ctx) {
-//		System.out.println( " WHILE START : ");
+		System.out.println( " WHILE START : ");
+
+		stackForWhile.push(whileCnt);
+		printWriter.println(whileCnt++ + ": goto " + globalCnt);
+
+//		stackForReturn.push(returnCnt++);
 	}
 	
 	@Override public void exitWhile_stmt(tinyPythonParser.While_stmtContext ctx) {
 		System.out.println( " WHILE END : ");
+
+		printWriter.println("goto " + stackForWhile.pop());
+
 	}
 	
 	@Override public void enterDef_stmt(tinyPythonParser.Def_stmtContext ctx) {
@@ -337,26 +336,30 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	@Override public void enterSuite(tinyPythonParser.SuiteContext ctx) {
 		System.out.println( " Suite START : ");
 
-//		printWriter.println(ctx.getText());
-		System.out.println(ctx.getText());
+//		printWriter.println("awdawawddaw");
+
 	}
 	
 	@Override public void exitSuite(tinyPythonParser.SuiteContext ctx) {
 		System.out.println( " Suite_END : ");
 
-		//뒤에 else가 나오면 goto 뒤의 번호를 return으로 옮겨야함
+		// 만약 부모가 if 라면
 
-		System.out.println();
+		System.out.println(ctx.parent.getChild(0) + "  aaaa");
 
-		enterIf_stmt((tinyPythonParser.If_stmtContext) ctx.parent);
+		if(ctx.parent.getChild(0).toString().equals("while"))
+		{
 
+		}
 
-		printWriter.println(globalCnt++ + ": goto " + stackForReturn.peek());
+		if(ctx.parent.getChild(0).toString().equals("if"))
+		{
+			printWriter.println("goto " + stackForReturn.peek());
 
-		printWriter.println("0" + stackForIf.pop() + ": goto " + globalCnt);
-		stackForIf.push(ifCnt);
-		ifCnt ++;
-
+			if(ctx.parent.getChild(ctx.parent.getChildCount() - 1) != ctx)
+				if(!stackForIf.isEmpty())
+					printWriter.print("0" + stackForIf.pop() + ": ");
+		}
 
 
 	}
@@ -374,11 +377,13 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	}
 	 
 	@Override public void exitReturn_stmt(tinyPythonParser.Return_stmtContext ctx) {
-		System.out.println( " Return_stmt END : ");
+		System.out.println( " Return_stmt_END : ");
 	}
 	 
 	@Override public void enterTest(tinyPythonParser.TestContext ctx) {
 		System.out.println( " Test_START : ");
+
+
 
 		/*
 		무조건 2개 오는 것이 규칙
@@ -388,49 +393,47 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 		2. 비교문 판별
 		3.
 
-
-
 		while 의 경우 마지막에 돌아가는 goto 문이 필요하다
 		while enter의 if_cnt를 기억해야 한다
 		 */
 
-		String[] sign = 		 {">"		 , "<"		  ,	"=="	, "<="	  , ">="	, "!="	  };
+		String[] sign = 		 {">"		 , "<"		  ,	"=="	   , "<="	    , ">="		 , "!="	  };
 		String[] compareTwoVar = {"if_icmple", "if_icmpge", "if_icmpne", "if_icmpgt", "if_icmplt", "if_icmpeq"};
 
 		String tstr1 = ctx.expr(0).getText();
 		String tstr2 = ctx.expr(1).getText();
 		String compOp = ctx.comp_op().getText();
 
+//		if(!stackForIf.isEmpty())
+//			printWriter.print("0" + stackForIf.peek() + ": 333 ");
+
 		if(isInteger(tstr1) == false)	// 변수라면
 		{
-			printWriter.println(globalCnt++ + ": iload " + keyAndNum.get(tstr1));
+			printWriter.println( "iload " + keyAndNum.get(tstr1));
 		}
 		else
 		{
-			printWriter.println(globalCnt++ + ": ldc " + tstr1);
+			printWriter.println( "sipush " + tstr1);
 		}
 
 		if(isInteger(tstr2) == false)
 		{
-			printWriter.println(globalCnt++ + ": iload " + keyAndNum.get(tstr2));
+			printWriter.println( "iload " + keyAndNum.get(tstr2));
 		}
 		else
 		{
-			printWriter.println(globalCnt++ + ": ldc " + tstr2);
+			printWriter.println( "sipush " + tstr2);
 		}
+
 
 		for(int i = 0; i < sign.length; i ++)
 		{
 			if(sign[i].equals(compOp))
 			{
-				printWriter.println(globalCnt++ + ": " + compareTwoVar[i] + " 0" + ifCnt );
 				stackForIf.push(ifCnt);
+				printWriter.println("" + compareTwoVar[i] + " 0" + ifCnt + "");
 				ifCnt ++;
-				/*
-				else 문일경우
-					if와 elif 마지막을 goto return으로 해야한다.
-					ifCnt를 else 로 goto 해야한다
-				 */
+
 				break;
 			}
 		}
@@ -446,7 +449,9 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	 
 	@Override public void enterPrint_stmt(tinyPythonParser.Print_stmtContext ctx) {
 //		System.out.println( " Print_stmt START : ");
-		printWriter.println(globalCnt++ + ": getstatic java/lang/System/out Ljava/io/PrintStream;");
+
+
+		printWriter.println("getstatic java/lang/System/out Ljava/io/PrintStream;");
 		printStart = true;
 //		System.out.println("child is : " + ctx);
 	}
@@ -460,75 +465,45 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 			while(!queueForPrint.peek().equals("print"))
 			{
-				queueForPrint.remove();	// print 제거
+				queueForPrint.remove();
 			}
 			queueForPrint.remove();	// print 제거
 
-			if(queueForPrint.size() <= 3)	// +, - 연산이 하나 이하인 경우
+			while(!queueForPrint.isEmpty())
 			{
-				if(queueForPrint.size() == 1)		// 단일인 경우
-				{
-					String tstr1 = queueForPrint.poll();
-
-					if(isInteger(tstr1) == true)	// 정수인 경우
-						printnum = 	Integer.parseInt(tstr1);
-					else	// 변수 하나인 경우
-					{
-						printnum = Integer.parseInt(keyAndValue.get(tstr1));
-					}
-				}
-				else	// 하나의 연산인 경우
-				{
-					String tstr1, tstr2, op;
-					tstr1 = queueForPrint.poll();
-					op = queueForPrint.poll();
-					tstr2 = queueForPrint.poll();
-
-					printnum = Integer.parseInt(CalcTwoString(tstr1, tstr2, op));
-				}
-			}
-			else if(queueForPrint.size() == 4)	// 함수 호출인 경우
-			{
-
-			}
-			else	// +, - 연산이 2개 이상인 경우
-			{
-				/*
-				처음에 하나 값을 빼고
-				이후에 op와 값을 빼서 계산.
-				그것을 반복
-				 */
-
 				String tstr1 = queueForPrint.poll();
-				if (isInteger(tstr1) == true)
-				{
-					// 숫자일 경우 아무것도 안함
-					printnum = Integer.parseInt(tstr1);
-				}
-				else
-				{
-					// 변수일 경우 저장된 값을 찾아 할당
-					printnum = Integer.parseInt(keyAndValue.get(tstr1));
-				}
 
-				do {
-					String op = queueForPrint.poll();
+				if(isInteger(tstr1) == true)	// 숫자일 경우
+					printWriter.println("sipush " + tstr1);
+
+				else if(!tstr1.equals("+") && !tstr1.equals("-"))
+					printWriter.println("iload " + keyAndNum.get(tstr1));
+
+				else	// 연산 기호인 경우 다음 값 확인
+				{
 					String tstr2 = queueForPrint.poll();
 
-					printnum = Integer.parseInt(CalcTwoString(Integer.toString(printnum), tstr2, op));
+					if(isInteger(tstr2) == true)	// 숫자일 경우
+						printWriter.println("sipush " + tstr2);
+					else
+						printWriter.println("iload " + keyAndNum.get(tstr2));
 
-				} while(queueForPrint.size() > 1);
+					if(tstr1.equals("+"))
+						printWriter.println("iadd");
+					else
+						printWriter.println("isub");
+				}
+
 
 			}
 
 
-			printWriter.println(globalCnt++ + ": ldc \"" + printnum + "\"");
+//			printWriter.println( "ldc \"" + printnum + "\"");
 			printStart = false;
+
+			queueForPrint.clear();
+			printWriter.println( "invokevirtual java/io/PrintStream/println(I)V");
 		}
-
-		queueForPrint.clear();
-		printWriter.println(globalCnt++ + ": invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
-
 
 	}
 	 
@@ -537,7 +512,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 		if(ctx.STRING() != null)
 		{
-			printWriter.println(globalCnt++ + ": ldc " + ctx.STRING());
+			printWriter.println( "ldc " + ctx.STRING());
+			printWriter.println("invokevirtual java/io/PrintStream.println(Ljava/lang/String;)V");
+			printStart = false;
+			queueForPrint.clear();
 		}
 	}
 
@@ -546,42 +524,22 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	}
 	 
 	@Override public void enterComp_op(tinyPythonParser.Comp_opContext ctx) {
-		System.out.println( " Comp_op_START : ");
-//		System.out.println(ctx.getText());
+//		System.out.println( " Comp_op_START : ");
 	}
 	 
 	@Override public void exitComp_op(tinyPythonParser.Comp_opContext ctx) {
-		System.out.println( " Comp_op_END : ");
+//		System.out.println( " Comp_op_END : ");
 	}
 	 
 	@Override public void enterExpr(tinyPythonParser.ExprContext ctx) {
 //		System.out.println( " Expr START : ");
 //		System.out.println(ctx.NAME());
 
-
-
-
-//		if(ctx.NAME() != null)
-//		{
-//			stackForPrint.push(ctx.NAME().toString());
-//		}
-//		else if(ctx.NUMBER() != null)
-//		{
-//			stackForPrint.push(ctx.NUMBER().toString());
-//		}
-//		else
-//		{
-//			/*
-//			print string 경우
-//			 */
-//		}
-
-
-
 	}
 	 
 	@Override public void exitExpr(tinyPythonParser.ExprContext ctx) {
 //		System.out.println( " Expr END : ");
+
 
 
 
