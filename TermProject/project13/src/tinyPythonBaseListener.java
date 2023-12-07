@@ -172,13 +172,9 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	}
 	
 	@Override public void enterDefs(tinyPythonParser.DefsContext ctx) {
-		System.out.println( " Defs 시작 : ");
-		defStart = true;
 	}
 	
 	@Override public void exitDefs(tinyPythonParser.DefsContext ctx) {
-		System.out.println( " Defs 끝 : ");
-		defStart = false;
 	}
 	
 	@Override public void enterStmt(tinyPythonParser.StmtContext ctx) {
@@ -257,7 +253,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 				printWriter.println("sipush " + tstr1);
 
 			else if(!tstr1.equals("+") && !tstr1.equals("-") && !tstr1.equals("(") && !tstr1.equals(")"))	// 변수일 경우
-				printWriter.println("iload " + keyAndNum.get(tstr1));
+				if(defStart == true)
+					printWriter.println("iload 0");
+				else
+					printWriter.println("iload " + keyAndNum.get(tstr1));
 
 			else	// 연산 기호인 경우 다음 값 확인
 			{
@@ -266,7 +265,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 				if(isInteger(tstr2) == true)	// 숫자일 경우
 					printWriter.println("sipush " + tstr2);
 				else
-					printWriter.println("iload " + keyAndNum.get(tstr2));
+					if(defStart == true)
+						printWriter.println("iload 0");
+					else
+						printWriter.println("iload " + keyAndNum.get(tstr2));
 
 				if(tstr1.equals("+"))
 					printWriter.println("iadd");
@@ -275,7 +277,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 			}
 		}
 
-		printWriter.println( "istore " + keyAndNum.get(key));
+		if(defStart == true)
+			printWriter.println( "istore 0");
+		else
+			printWriter.println( "istore " + keyAndNum.get(key));
 
 		allocaStart = false;
 	}
@@ -359,9 +364,11 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	}
 	
 	@Override public void enterDef_stmt(tinyPythonParser.Def_stmtContext ctx) {
-		System.out.println( " Def_stmt START : ");
+		System.out.println( " Def_stmt_START : ");
 
-//		printWriter.println("def_start ######################");
+		System.out.println( " Defs 시작 : ");
+//		printWriter.println("def 시작");
+		defStart = true;
 
 		printWriter.println(".method public static " + ctx.NAME() + "(I)I \n" +
 				".limit stack 32\n" +
@@ -370,8 +377,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	}
 	
 	@Override public void exitDef_stmt(tinyPythonParser.Def_stmtContext ctx) {
-		System.out.println( " Def_stmt END : ");
+		System.out.println( " Def_stmt_END : ");
 
+//		printWriter.println("def 끝");
+		defStart = false;
 		printWriter.println(".end method");
 
 //		printWriter.println("def_end @@@@@@@@@@@@@@@@@@@@@@@@@");
@@ -441,7 +450,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					printWriter.println("sipush " + tstr1);
 
 				else if(!tstr1.equals("+") && !tstr1.equals("-"))
-					printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
+					if(defStart == true)
+						printWriter.println("iload 0");
+					else
+						printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
 
 				else	// 연산 기호인 경우 다음 값 확인
 				{
@@ -450,7 +462,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					if(isInteger(tstr2) == true)	// 숫자일 경우
 						printWriter.println("sipush " + tstr2);
 					else
-						printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
+						if(defStart == true)
+							printWriter.println("iload 0");
+						else
+							printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
 
 					if(tstr1.equals("+"))
 						printWriter.println("iadd");
@@ -498,7 +513,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 		if(isInteger(tstr1) == false)	// 변수라면
 		{
-			printWriter.println( "iload " + keyAndNum.get(tstr1));
+			if(defStart == true)
+				printWriter.println("iload 0");
+			else
+				printWriter.println( "iload " + keyAndNum.get(tstr1));
 		}
 		else
 		{
@@ -507,7 +525,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 		if(isInteger(tstr2) == false)
 		{
-			printWriter.println( "iload " + keyAndNum.get(tstr2));
+			if(defStart == true)
+				printWriter.println("iload 0");
+			else
+				printWriter.println( "iload " + keyAndNum.get(tstr2));
 		}
 		else
 		{
@@ -566,7 +587,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					printWriter.println("sipush " + tstr1);
 
 				else if(!tstr1.equals("+") && !tstr1.equals("-"))
-					printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
+					if(defStart == true)
+						printWriter.println("iload 0");
+					else
+						printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
 
 				else	// 연산 기호인 경우 다음 값 확인
 				{
@@ -575,7 +599,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					if(isInteger(tstr2) == true)	// 숫자일 경우
 						printWriter.println("sipush " + tstr2);
 					else
-						printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
+						if(defStart == true)
+							printWriter.println("iload 0");
+						else
+							printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
 
 					if(tstr1.equals("+"))
 						printWriter.println("iadd");
