@@ -6,8 +6,6 @@ import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import javax.lang.model.type.NullType;
-import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -29,7 +27,18 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 	static HashMap<String,String> keyAndValue = new HashMap<String,String>();
 	static HashMap<String,String> keyAndNum = new HashMap<String,String>();
-	int pushNum = 1;
+	static int pushNum = 1;
+
+	public static String ifNotExixtMakeMap(String var) {
+
+		if(keyAndNum.get(var) == null)
+			{
+				keyAndNum.put(var, Integer.toString(pushNum));
+				pushNum ++;
+			}
+
+			return keyAndNum.get(var);
+	}
 
 	public static boolean isInteger(String strValue) {
 		try {	Integer.parseInt(strValue);	return true;	}
@@ -41,7 +50,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 		if(isInteger(num1) == false)	// num1에 대한 map value 값을 찾아야 하는 경우
 		{
-			tnum1 = Integer.parseInt(keyAndValue.get(num1));
+
 			printWriter.println("iload " + keyAndNum.get(num1));
 		}
 		else
@@ -93,14 +102,19 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 	Queue<String> queueForPrint = new LinkedList<>();
 	Queue<String> queueForAlloca = new LinkedList<>();
+	
+	Queue<String> queueForReturn = new LinkedList<>();
 	boolean printStart = false;
 	boolean allocaStart = false;
+	boolean returnStart = false;
+	boolean mainStart = true;
+	boolean defStart = false;
 
 	boolean elseStart = false;
 
 	int ifCnt = 1;
 	int returnCnt = 10000;
-	int whileCnt = 20000;
+	int whileCnt = 30000;
 	Stack<Integer> stackForIf = new Stack<>();
 	Stack<Integer> stackForWhile = new Stack<>();
 	Stack<Integer> stackForReturn = new Stack<>();
@@ -140,12 +154,6 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 				"invokenonvirtual java/lang/Object/<init>()V\n" +
 				"return\n" +
 				".end method");
-
-		printWriter.println(".method public static main([Ljava/lang/String;)V\n" +
-				".limit stack 32\n" +
-				".limit locals 32");
-
-
 	}
 	
 	@Override public void exitProgram(tinyPythonParser.ProgramContext ctx) {
@@ -165,16 +173,34 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	
 	@Override public void enterDefs(tinyPythonParser.DefsContext ctx) {
 		System.out.println( " Defs 시작 : ");
+		defStart = true;
 	}
 	
 	@Override public void exitDefs(tinyPythonParser.DefsContext ctx) {
 		System.out.println( " Defs 끝 : ");
+		defStart = false;
 	}
 	
 	@Override public void enterStmt(tinyPythonParser.StmtContext ctx) {
 //		System.out.println( " Stmt 시작 : ");
+
+//		System.out.println(ctx.parent.toString() + "  ffff   ");
+//		printWriter.println(ctx.parent.getPayload() + "  ffff   ");
+//		printWriter.println(ctx.parent.getRuleContext() + "  ffff   ");
+//		printWriter.println(ctx.parent.getClass() + "  ffff   ");
+//		printWriter.println(ctx.parent.toString() + "  ffff   ");
+//		printWriter.println(ctx.parent.parent.getChild(0) + " ggggg  ") ;
+//		printWriter.println(ctx.parent.parent.parent + " ggggg  ") ;
+
+		if(mainStart && !ctx.parent.parent.getChild(0).equals("def") && ctx.parent.parent.parent == null )
+		{
+			printWriter.println(".method public static main([Ljava/lang/String;)V\n" +
+					".limit stack 32\n" +
+					".limit locals 32");
+			mainStart = false;
+		}
 	}
-	
+
 	@Override public void exitStmt(tinyPythonParser.StmtContext ctx) {
 
 	}
@@ -212,6 +238,8 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 		String key = "";
 		String value = "";
 
+
+
 		key = queueForAlloca.poll();
 		queueForAlloca.poll();	// remove simbol '='
 
@@ -228,7 +256,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 			if(isInteger(tstr1) == true)	// 숫자일 경우
 				printWriter.println("sipush " + tstr1);
 
-			else if(!tstr1.equals("+") && !tstr1.equals("-"))
+			else if(!tstr1.equals("+") && !tstr1.equals("-") && !tstr1.equals("(") && !tstr1.equals(")"))	// 변수일 경우
 				printWriter.println("iload " + keyAndNum.get(tstr1));
 
 			else	// 연산 기호인 경우 다음 값 확인
@@ -312,44 +340,58 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	@Override public void enterWhile_stmt(tinyPythonParser.While_stmtContext ctx) {
 		System.out.println( " WHILE START : ");
 
+//		printWriter.println("while start");
 		stackForWhile.push(whileCnt);
-		printWriter.println(whileCnt++ + ": goto " + globalCnt);
+		printWriter.print(whileCnt + ": ");
+		whileCnt ++;
+//		printWriter.println(whileCnt++ + ": goto " + globalCnt);
 
 //		stackForReturn.push(returnCnt++);
 	}
 	
 	@Override public void exitWhile_stmt(tinyPythonParser.While_stmtContext ctx) {
 		System.out.println( " WHILE END : ");
-
+//		printWriter.println("while end");
 		printWriter.println("goto " + stackForWhile.pop());
+		printWriter.print("0" + stackForIf.pop() + ": ");
+//		printWriter.println("goto " + stackForWhile.pop());
 
 	}
 	
 	@Override public void enterDef_stmt(tinyPythonParser.Def_stmtContext ctx) {
 		System.out.println( " Def_stmt START : ");
+
+//		printWriter.println("def_start ######################");
+
+		printWriter.println(".method public static " + ctx.NAME() + "(I)I \n" +
+				".limit stack 32\n" +
+				".limit locals 32");
+
 	}
 	
 	@Override public void exitDef_stmt(tinyPythonParser.Def_stmtContext ctx) {
 		System.out.println( " Def_stmt END : ");
+
+		printWriter.println(".end method");
+
+//		printWriter.println("def_end @@@@@@@@@@@@@@@@@@@@@@@@@");
+
 	}
+
 	
 	@Override public void enterSuite(tinyPythonParser.SuiteContext ctx) {
 		System.out.println( " Suite START : ");
 
-//		printWriter.println("awdawawddaw");
+
 
 	}
 	
 	@Override public void exitSuite(tinyPythonParser.SuiteContext ctx) {
 		System.out.println( " Suite_END : ");
 
-		// 만약 부모가 if 라면
-
-		System.out.println(ctx.parent.getChild(0) + "  aaaa");
-
 		if(ctx.parent.getChild(0).toString().equals("while"))
 		{
-
+//			printWriter.println("goto dddd ");
 		}
 
 		if(ctx.parent.getChild(0).toString().equals("if"))
@@ -374,10 +416,57 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 	 
 	@Override public void enterReturn_stmt(tinyPythonParser.Return_stmtContext ctx) {
 		System.out.println( " Return_stmt START : ");
+
+		returnStart = true;
 	}
 	 
 	@Override public void exitReturn_stmt(tinyPythonParser.Return_stmtContext ctx) {
 		System.out.println( " Return_stmt_END : ");
+
+		if(returnStart == true)
+		{
+			int printnum = 0;
+
+			while(!queueForReturn.peek().equals("return"))
+			{
+				queueForReturn.remove();
+			}
+			queueForReturn.remove();	// return 제거
+
+			while(!queueForReturn.isEmpty())
+			{
+				String tstr1 = queueForReturn.poll();
+
+				if(isInteger(tstr1) == true)	// 숫자일 경우
+					printWriter.println("sipush " + tstr1);
+
+				else if(!tstr1.equals("+") && !tstr1.equals("-"))
+					printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
+
+				else	// 연산 기호인 경우 다음 값 확인
+				{
+					String tstr2 = queueForReturn.poll();
+
+					if(isInteger(tstr2) == true)	// 숫자일 경우
+						printWriter.println("sipush " + tstr2);
+					else
+						printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
+
+					if(tstr1.equals("+"))
+						printWriter.println("iadd");
+					else
+						printWriter.println("isub");
+				}
+
+
+			}
+
+			returnStart = false;
+
+			queueForReturn.clear();
+			printWriter.println( "ireturn");
+		}
+
 	}
 	 
 	@Override public void enterTest(tinyPythonParser.TestContext ctx) {
@@ -477,7 +566,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					printWriter.println("sipush " + tstr1);
 
 				else if(!tstr1.equals("+") && !tstr1.equals("-"))
-					printWriter.println("iload " + keyAndNum.get(tstr1));
+					printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
 
 				else	// 연산 기호인 경우 다음 값 확인
 				{
@@ -486,7 +575,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					if(isInteger(tstr2) == true)	// 숫자일 경우
 						printWriter.println("sipush " + tstr2);
 					else
-						printWriter.println("iload " + keyAndNum.get(tstr2));
+						printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
 
 					if(tstr1.equals("+"))
 						printWriter.println("iadd");
@@ -497,8 +586,6 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 			}
 
-
-//			printWriter.println( "ldc \"" + printnum + "\"");
 			printStart = false;
 
 			queueForPrint.clear();
@@ -581,6 +668,10 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 		else if(allocaStart == true)
 		{
 			queueForAlloca.offer(node.toString());
+		}
+		else if(returnStart == true)
+		{
+			queueForReturn.offer(node.toString());
 		}
 
 

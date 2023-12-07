@@ -2,17 +2,16 @@
 import java.io.IOException;
 
 public class test {
+
+    
     public static void main(String[] args) throws IOException {
 
         int num1 = 5;
         int num2 = 6;
 
-        System.out.println(num1);
+        num1 = 50 + (10 - 20);
 
-        System.out.println(234243);
-
-        int num3 = num1 + num1 + num1;
-        int num4 = num1 - num2;
+        // static int glo3 = 12321;
 
         if(num1 >= 6)
             System.out.println("true");

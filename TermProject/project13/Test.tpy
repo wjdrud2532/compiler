@@ -1,16 +1,5 @@
-a = 8
-b = 2
 
-if a == 8:
-    a = a + 2
-    print a
-elif a == 9:
-    a = a + 2
-    print a
-else:
-    print a + 2
-    print a
-    if a == 10:
-        print a + 2
+a = 50 + (10 - 20)
 
-print "end"
+print a
+    
