@@ -27,6 +27,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 	static HashMap<String,String> keyAndValue = new HashMap<String,String>();
 	static HashMap<String,String> keyAndNum = new HashMap<String,String>();
+	static HashMap<String,String> defMap = new HashMap<String,String>();
 	static int pushNum = 1;
 
 	public static String ifNotExixtMakeMap(String var) {
@@ -102,7 +103,6 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 
 	Queue<String> queueForPrint = new LinkedList<>();
 	Queue<String> queueForAlloca = new LinkedList<>();
-	
 	Queue<String> queueForReturn = new LinkedList<>();
 	boolean printStart = false;
 	boolean allocaStart = false;
@@ -245,6 +245,16 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 			pushNum ++;
 		}
 
+		Queue<String> tempQueue = new LinkedList<>();
+		while(!queueForAlloca.isEmpty())
+		{
+			String str = queueForAlloca.poll();
+			if(!str.equals("(") && !str.equals(")"))
+				tempQueue.offer(str);
+		}
+		queueForAlloca.clear();
+		queueForAlloca = tempQueue;
+
 		while(!queueForAlloca.isEmpty())
 		{
 			String tstr1 = queueForAlloca.poll();
@@ -256,7 +266,28 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 				if(defStart == true)
 					printWriter.println("iload 0");
 				else
-					printWriter.println("iload " + keyAndNum.get(tstr1));
+				{
+					if(defMap.get(tstr1) == null)
+						printWriter.println("iload " + keyAndNum.get(tstr1));	// 변수일 경우
+					else	// 함수일 경우
+					{
+						// 함수 이후에는 항상 변수 또는 인자값만 들어온다
+						// poll 하나 하여 변수인자 값인지 확인
+						// 타입에 맞게 printwrite 수행
+//						printWriter.println("load or sipush num");
+						if(isInteger(tstr1))
+							printWriter.println("sipush" + tstr1 + "");
+						else
+						{
+//							printWriter.println("iload " + tstr1);
+//							printWriter.println("iload " + queueForAlloca.peek());
+							printWriter.println("iload " + keyAndNum.get(queueForAlloca.poll()));
+							printWriter.println("invokestatic Test/" + tstr1 + "(I)I");
+						}
+
+					}
+				}
+
 
 			else	// 연산 기호인 경우 다음 값 확인
 			{
@@ -268,7 +299,18 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					if(defStart == true)
 						printWriter.println("iload 0");
 					else
-						printWriter.println("iload " + keyAndNum.get(tstr2));
+					{
+						if(isInteger(tstr2))
+							printWriter.println("sipush" + tstr2 + "");
+						else
+						{
+//							printWriter.println("iload " + tstr1);
+//							printWriter.println("iload " + queueForAlloca.peek());
+							printWriter.println("iload " + keyAndNum.get(queueForAlloca.poll()));
+							printWriter.println("invokestatic Test/" + tstr2 + "(I)I");
+						}
+
+					}
 
 				if(tstr1.equals("+"))
 					printWriter.println("iadd");
@@ -370,6 +412,9 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 //		printWriter.println("def 시작");
 		defStart = true;
 
+//		printWriter.println(ctx.NAME().toString() + "  88888888 ");
+		defMap.put(ctx.NAME().toString(), "");
+
 		printWriter.println(".method public static " + ctx.NAME() + "(I)I \n" +
 				".limit stack 32\n" +
 				".limit locals 32");
@@ -441,6 +486,7 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 				queueForReturn.remove();
 			}
 			queueForReturn.remove();	// return 제거
+
 
 			while(!queueForReturn.isEmpty())
 			{
@@ -579,6 +625,16 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 			}
 			queueForPrint.remove();	// print 제거
 
+			Queue<String> tempQueue = new LinkedList<>();
+			while(!queueForPrint.isEmpty())
+			{
+				String str = queueForPrint.poll();
+				if(!str.equals("(") && !str.equals(")"))
+					tempQueue.offer(str);
+			}
+			queueForPrint.clear();
+			queueForPrint = tempQueue;
+
 			while(!queueForPrint.isEmpty())
 			{
 				String tstr1 = queueForPrint.poll();
@@ -590,7 +646,21 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 					if(defStart == true)
 						printWriter.println("iload 0");
 					else
-						printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
+					{
+						// 문자일 경우
+						// 먼저 이 문자열이 함수명인지 확인하고
+						// 함수명이면 load 인자 + 함수명 출력
+						if(defMap.containsKey(tstr1))	// 함수가 존재하면
+						{
+							printWriter.println("iload " + keyAndNum.get(queueForPrint.poll()));
+							printWriter.println("invokestatic Test/" + tstr1 + "(I)I");
+						}
+						else
+						{
+							// 함수명이 아니면 아래 코드 실행
+							printWriter.println("iload " + ifNotExixtMakeMap(tstr1));
+						}
+					}
 
 				else	// 연산 기호인 경우 다음 값 확인
 				{
@@ -602,7 +672,18 @@ public class tinyPythonBaseListener implements tinyPythonListener {
 						if(defStart == true)
 							printWriter.println("iload 0");
 						else
-							printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
+						{
+							if(defMap.containsKey(tstr2))	// 함수가 존재하면
+							{
+								printWriter.println("iload " + keyAndNum.get(queueForPrint.poll()));
+								printWriter.println("invokestatic Test/" + tstr2 + "(I)I");
+							}
+							else
+							{
+								printWriter.println("iload " + ifNotExixtMakeMap(tstr2));
+							}
+						}
+
 
 					if(tstr1.equals("+"))
 						printWriter.println("iadd");

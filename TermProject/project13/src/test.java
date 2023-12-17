@@ -3,6 +3,9 @@ import java.io.IOException;
 
 public class test {
 
+    public static int returnA(int A) {
+        return A;
+    }
     
     public static void main(String[] args) throws IOException {
 
@@ -11,17 +14,15 @@ public class test {
 
         num1 = 50 + (10 - 20);
 
-        // static int glo3 = 12321;
-
-        if(num1 >= 6)
-            System.out.println("true");
-        else if(num1 < 4)
-            System.out.println("middle");
-        else
-            System.out.println("false");
+        // System.out.println(returnA(num1));
+        num2 = returnA(num1) + 999;
         
 
-
+/*
+iload 2
+invokestatic Test/sum111(I)I
+invokevirtual java/io/PrintStream/println(I)V
+*/
 
         // int num3 = 5;
         // int num4 = 50;

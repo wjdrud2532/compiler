@@ -1,13 +1,9 @@
-def sum111(a):
-	print a
-	a = a + 1
+def sum1(a):
+    a = a + 5
 	return a
 
-def sum222(b):
-	print b
-    b = b + 1
-	return b
+def sum2(a):
+	return a + 5
 
-a = 5
-b = 10
+
 
